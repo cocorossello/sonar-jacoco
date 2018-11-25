@@ -22,9 +22,13 @@ package org.sonar.plugins.jacoco;
 import org.sonar.api.batch.fs.InputFile;
 import org.sonar.api.batch.sensor.SensorContext;
 import org.sonar.api.batch.sensor.coverage.NewCoverage;
+import org.sonar.api.utils.log.Logger;
+import org.sonar.api.utils.log.Loggers;
 
 public class ReportImporter {
   private final SensorContext ctx;
+
+  private static final Logger LOG = Loggers.get(ReportImporter.class);
 
   public ReportImporter(SensorContext ctx) {
     this.ctx = ctx;
@@ -35,6 +39,11 @@ public class ReportImporter {
       .onFile(inputFile);
 
     for (XmlReportParser.Line line : sourceFile.lines()) {
+      boolean validLine = inputFile.lines() >= line.number();
+      if (!validLine) {
+        LOG.warn("Skipping line " + line.number() + " outside of range of " + inputFile.filename() + " (" + inputFile.lines() + " line)");
+        continue;
+      }
       boolean conditions = false;
       if (line.coveredBranches() > 0 || line.missedBranches() > 0) {
         int branches = line.coveredBranches() + line.missedBranches();
